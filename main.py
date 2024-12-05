@@ -103,10 +103,13 @@ def main():
     
     st.title("🌟 GitHub Insights")
     st.markdown("---")
-    
-    # API Key input
+      # API Key input
     api_key = st.sidebar.text_input("Enter Scrapegraph API Key", type="password")
-    
+     
+    # Add ScrapeGraphAI logo and reference in sidebar
+    st.sidebar.image("assets/scrapegraphai_logo.png", width=100, use_column_width=True)
+    st.sidebar.markdown("<div style='text-align: center'><a href='https://scrapegraphai.com/'>Powered by ScrapeGraphAI</a></div>", unsafe_allow_html=True)
+ 
     if not api_key:
         st.warning("Please enter your Scrapegraph API key in the sidebar to continue.")
         return
@@ -114,8 +117,8 @@ def main():
     # Create tabs
     tab1, tab2, tab3, tab4 = st.tabs([
         "Trending Developers", 
+        "Trending Repos", 
         "Topics", 
-        "Explore", 
         "Collections"
     ])
 
@@ -186,56 +189,8 @@ def main():
         else:
             st.warning("No data available. Please try refreshing.")
 
-    # Tab 2: Topics
+    # Tab 2: Explore (moved from tab3)
     with tab2:
-        if st.button("Refresh Topics Data"):
-            st.session_state.topics_data = fetch_github_topics(api_key)
-        
-        if 'topics_data' not in st.session_state:
-            st.session_state.topics_data = fetch_github_topics(api_key)
-        
-        if st.session_state.topics_data:
-            # Convert topics data to DataFrame
-            if 'featured_topics' in st.session_state.topics_data:
-                topics_df = pd.DataFrame(st.session_state.topics_data['featured_topics'])
-                
-                # Display the DataFrame
-                st.dataframe(
-                    topics_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "name": "Topic Name",
-                        "description": "Description"
-                    }
-                )
-                
-                # Add download buttons for Topics data
-                col1, col2 = st.columns(2)
-                with col1:
-                    # CSV download
-                    csv = topics_df.to_csv(index=False)
-                    st.download_button(
-                        label="Download Topics as CSV",
-                        data=csv,
-                        file_name="github_topics.csv",
-                        mime="text/csv"
-                    )
-                with col2:
-                    # JSON download
-                    st.download_button(
-                        label="Download Topics as JSON",
-                        data=json.dumps(st.session_state.topics_data, indent=2),
-                        file_name="github_topics.json",
-                        mime="application/json"
-                    )
-            else:
-                st.error("Invalid topics data format received")
-        else:
-            st.warning("No topics data available. Please try refreshing.")
-
-    # Tab 3: Explore
-    with tab3:
         if st.button("Refresh Explore Data"):
             st.session_state.explore_data = fetch_github_explore(api_key)
         
@@ -334,6 +289,54 @@ def main():
                 )
         else:
             st.warning("No explore data available. Please try refreshing.")
+
+    # Tab 3: Topics (moved from tab2)
+    with tab3:
+        if st.button("Refresh Topics Data"):
+            st.session_state.topics_data = fetch_github_topics(api_key)
+        
+        if 'topics_data' not in st.session_state:
+            st.session_state.topics_data = fetch_github_topics(api_key)
+        
+        if st.session_state.topics_data:
+            # Convert topics data to DataFrame
+            if 'featured_topics' in st.session_state.topics_data:
+                topics_df = pd.DataFrame(st.session_state.topics_data['featured_topics'])
+                
+                # Display the DataFrame
+                st.dataframe(
+                    topics_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "name": "Topic Name",
+                        "description": "Description"
+                    }
+                )
+                
+                # Add download buttons for Topics data
+                col1, col2 = st.columns(2)
+                with col1:
+                    # CSV download
+                    csv = topics_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download Topics as CSV",
+                        data=csv,
+                        file_name="github_topics.csv",
+                        mime="text/csv"
+                    )
+                with col2:
+                    # JSON download
+                    st.download_button(
+                        label="Download Topics as JSON",
+                        data=json.dumps(st.session_state.topics_data, indent=2),
+                        file_name="github_topics.json",
+                        mime="application/json"
+                    )
+            else:
+                st.error("Invalid topics data format received")
+        else:
+            st.warning("No topics data available. Please try refreshing.")
 
     # Tab 4: Collections
     with tab4:
