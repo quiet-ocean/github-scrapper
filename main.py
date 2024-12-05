@@ -16,6 +16,15 @@ class Developer(BaseModel):
 class TrendingDevelopers(BaseModel):
     developers: List[Developer] = Field(description="List of trending developers from GitHub")
 
+class Repository(BaseModel):
+    name: str = Field(description="Repository name")
+    description: Optional[str] = Field(description="Repository description")
+    stars: int = Field(description="Number of stars")
+    language: Optional[str] = Field(description="Primary programming language")
+
+class TrendingRepositories(BaseModel):
+    repositories: List[Repository] = Field(description="List of trending repositories from GitHub")
+
 def fetch_trending_developers(api_key):
     # Initialize the client
     sgai_client = SyncClient(api_key=api_key)
@@ -58,10 +67,12 @@ def fetch_github_explore(api_key):
     try:
         response = sgai_client.smartscraper(
             website_url="https://github.com/explore",
-            user_prompt="Extract trending repositories including name, description, and stars",
+            user_prompt="Extract trending repositories including name, description, stars, and programming language",
+            output_schema=TrendingRepositories,
         )
+        print(response)
         sgai_client.close()
-        return response['result']
+        return TrendingRepositories(**response['result'])
     except Exception as e:
         st.error(f"Error fetching explore data: {str(e)}")
         if 'sgai_client' in locals():
@@ -233,46 +244,94 @@ def main():
         
         if st.session_state.explore_data:
             # Convert explore data to DataFrame
-            if 'trending_repositories' in st.session_state.explore_data:
-                explore_df = pd.DataFrame(st.session_state.explore_data['trending_repositories'])
-                
-                # Display the DataFrame
-                st.dataframe(
-                    explore_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "name": "Repository",
-                        "description": "Description",
-                        "stars": st.column_config.NumberColumn(
-                            "Stars",
-                            help="Number of GitHub stars",
-                            format="%d ⭐"
-                        )
-                    }
+            repos_data = []
+            for repo in st.session_state.explore_data.repositories:
+                repos_data.append({
+                    "Repository": repo.name,
+                    "Description": repo.description or "N/A",
+                    "Stars": repo.stars,
+                    "Language": repo.language or "Unknown"
+                })
+            
+            explore_df = pd.DataFrame(repos_data)
+            
+            # Display the DataFrame
+            st.dataframe(
+                explore_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Stars": st.column_config.NumberColumn(
+                        "Stars",
+                        help="Number of GitHub stars",
+                        format="%d ⭐"
+                    ),
+                    "Language": st.column_config.TextColumn(
+                        "Language",
+                        help="Primary programming language"
+                    )
+                }
+            )
+            
+            # Create pie chart of programming languages
+            st.subheader("Programming Languages Distribution")
+            
+            # Count languages and handle repositories with no language
+            language_counts = explore_df['Language'].value_counts()
+            
+            # Create pie chart using Streamlit
+            fig = {
+                "data": [{
+                    "values": language_counts.values,
+                    "labels": language_counts.index,
+                    "type": "pie",
+                    "hole": 0.4,  # Makes it a donut chart
+                    "hoverinfo": "label+percent",
+                    "textinfo": "value"
+                }],
+                "layout": {
+                    "showlegend": True,
+                    "width": 800,
+                    "height": 500,
+                    "margin": {"t": 0, "b": 0, "l": 0, "r": 0},
+                    "legend": {"orientation": "h", "y": -0.1}
+                }
+            }
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Add download buttons for Explore data
+            col1, col2 = st.columns(2)
+            with col1:
+                # CSV download
+                csv = explore_df.to_csv(index=False)
+                st.download_button(
+                    label="Download Repositories as CSV",
+                    data=csv,
+                    file_name="github_trending_repos.csv",
+                    mime="text/csv"
                 )
-                
-                # Add download buttons for Explore data
-                col1, col2 = st.columns(2)
-                with col1:
-                    # CSV download
-                    csv = explore_df.to_csv(index=False)
-                    st.download_button(
-                        label="Download Repositories as CSV",
-                        data=csv,
-                        file_name="github_trending_repos.csv",
-                        mime="text/csv"
-                    )
-                with col2:
-                    # JSON download
-                    st.download_button(
-                        label="Download Repositories as JSON",
-                        data=json.dumps(st.session_state.explore_data, indent=2),
-                        file_name="github_trending_repos.json",
-                        mime="application/json"
-                    )
-            else:
-                st.error("Invalid explore data format received")
+            with col2:
+                # JSON download
+                json_data = json.dumps(
+                    {
+                        "repositories": [
+                            {
+                                "name": repo.name,
+                                "description": repo.description,
+                                "stars": repo.stars,
+                                "language": repo.language
+                            } for repo in st.session_state.explore_data.repositories
+                        ]
+                    },
+                    indent=2
+                )
+                st.download_button(
+                    label="Download Repositories as JSON",
+                    data=json_data,
+                    file_name="github_trending_repos.json",
+                    mime="application/json"
+                )
         else:
             st.warning("No explore data available. Please try refreshing.")
 
