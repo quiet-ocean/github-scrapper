@@ -108,10 +108,10 @@ def main():
      
     # Add ScrapeGraphAI logo and reference in sidebar
     st.sidebar.image("assets/scrapegraphai_logo.png", width=100, use_column_width=True)
-    st.sidebar.markdown("<div style='text-align: center'><a href='https://scrapegraphai.com/'>Powered by ScrapeGraphAI</a></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='text-align: center'><a href='https://scrapegraphai.com/'>Powered by ScrapeGraphAI</a></div><div style='text-align: center'><a href='https://scrapegraphai.com/'>Buy credits</a></div>", unsafe_allow_html=True)
  
     if not api_key:
-        st.warning("Please enter your Scrapegraph API key in the sidebar to continue.")
+        st.warning("Please enter your Scrapegraph API key in the sidebar to continue. You can buy here the credits: [https://scrapegraphai.com/](https://scrapegraphai.com/)")
         return
 
     # Create tabs
